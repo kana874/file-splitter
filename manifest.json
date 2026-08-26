@@ -1,0 +1,19 @@
+{
+  "name": "セキュア・ファイル分割/結合ツール",
+  "short_name": "File Splitter",
+  "description": "ブラウザ内だけでファイルを分割・結合し、SHA-256で整合性確認できるオフライン対応ツール",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
