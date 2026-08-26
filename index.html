@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="description" content="ブラウザ内だけでファイルを分割・結合し、SHA-256で整合性確認できるオフライン対応ツール">
+  <title>セキュア・ファイル分割/結合ツール</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+  <header class="header">
+    <div class="title-row">
+      <h1>ファイル分割・結合ツール</h1>
+      <span class="version">Ver.2.0.0</span>
+    </div>
+    <p>ブラウザ内で完結。ファイル内容は外部サーバーへ送信しません。</p>
+    <div class="security-strip" role="status" aria-live="polite">
+      <span>ローカル処理</span>
+      <span>SHA-256整合性確認</span>
+      <span id="offlineStatus">オンライン起動</span>
+    </div>
+    <div id="updateBanner" class="update-banner" hidden>
+      <span>新しいバージョンを利用できます。</span>
+      <button id="btnUpdate" class="btn-inline" type="button">更新する</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card" aria-labelledby="splitHeading">
+      <h2 id="splitHeading"><span aria-hidden="true">✂️</span> 分割（送信側）</h2>
+
+      <div class="settings-area">
+        <div class="form-group">
+          <label for="splitMode">分割サイズ / 方法</label>
+          <select id="splitMode">
+            <option value="5">5 MiB</option>
+            <option value="10">10 MiB</option>
+            <option value="14" selected>14 MiB（一般的なメール添付向け）</option>
+            <option value="15">15 MiB</option>
+            <option value="25">25 MiB</option>
+            <option value="50">50 MiB</option>
+            <option value="100">100 MiB</option>
+            <option value="custom">任意サイズ</option>
+            <option value="count">指定数で等分</option>
+          </select>
+        </div>
+
+        <div id="customSizeArea" class="form-group conditional" hidden>
+          <label for="customSize">任意サイズ（MiB）</label>
+          <input type="number" id="customSize" value="20" min="0.1" max="1024" step="0.1" inputmode="decimal">
+          <p class="field-note">1 MiB = 1,048,576 bytes。大きな値はSHA-256計算時のメモリ使用量が増えます。</p>
+        </div>
+
+        <div id="splitCountArea" class="form-group conditional" hidden>
+          <label for="splitCount">分割する数</label>
+          <input type="number" id="splitCount" value="2" min="2" max="9999" step="1" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="drop-zone" id="dropZoneSplit" tabindex="0" role="button" aria-label="分割するファイルを選択">
+        <p>ここにファイルをドラッグ＆ドロップ<br>またはクリックして選択</p>
+        <input type="file" id="fileInputSplit" aria-label="分割するファイル">
+      </div>
+
+      <div id="fileInfoSplit" class="file-info" hidden></div>
+      <div id="splitPreview" class="preview-box" hidden></div>
+
+      <div class="action-row">
+        <button class="btn" id="btnSplit" type="button" disabled>分割を実行</button>
+        <button class="btn btn-secondary" id="btnClearSplit" type="button" disabled>クリア</button>
+      </div>
+
+      <div id="progressSplit" class="progress-wrap" hidden>
+        <div class="progress-label"><span id="progressSplitText">準備中...</span><span id="progressSplitPercent">0%</span></div>
+        <progress id="progressSplitBar" value="0" max="100"></progress>
+      </div>
+
+      <div class="log-area" id="logSplit" aria-live="polite"></div>
+    </section>
+
+    <section class="card" aria-labelledby="mergeHeading">
+      <h2 id="mergeHeading"><span aria-hidden="true">🧩</span> 結合（受信側）</h2>
+      <p class="section-note">
+        <code>.part001</code> から始まる分割ファイルをすべて選択してください。<br>
+        <code>.parts.json</code> も一緒に選ぶと、各パーツのSHA-256を照合します。
+      </p>
+
+      <div class="drop-zone" id="dropZoneMerge" tabindex="0" role="button" aria-label="結合する分割ファイルを選択">
+        <p>分割ファイルをまとめてドラッグ＆ドロップ<br>またはクリックして選択（複数可）</p>
+        <input type="file" id="fileInputMerge" multiple aria-label="結合する分割ファイル">
+      </div>
+
+      <div id="fileInfoMerge" class="file-info" hidden></div>
+      <div id="mergeValidation" class="validation-box" hidden></div>
+
+      <div class="action-row">
+        <button class="btn" id="btnMerge" type="button" disabled>検証して結合</button>
+        <button class="btn btn-secondary" id="btnClearMerge" type="button" disabled>クリア</button>
+      </div>
+
+      <div id="progressMerge" class="progress-wrap" hidden>
+        <div class="progress-label"><span id="progressMergeText">準備中...</span><span id="progressMergePercent">0%</span></div>
+        <progress id="progressMergeBar" value="0" max="100"></progress>
+      </div>
+
+      <div class="log-area" id="logMerge" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <section class="notes-card" aria-labelledby="notesHeading">
+    <h2 id="notesHeading">仕様・注意点</h2>
+    <ul>
+      <li>分割時に各パーツのSHA-256を記録した <code>.parts.json</code> マニフェストを生成します。</li>
+      <li>結合時は、元ファイル名・連番・重複・欠損を先に検査し、マニフェストがあればサイズとSHA-256も照合します。</li>
+      <li>大容量ファイルは端末の空きメモリやブラウザ仕様の影響を受けます。特に大きなパーツサイズではSHA-256計算時にメモリを使用します。</li>
+      <li>生成したダウンロードURLはクリア操作やページ終了時に解放します。</li>
+    </ul>
+  </section>
+
+  <footer class="footer">
+    <span>File Splitter Ver.2.0.0</span>
+    <button id="btnInstall" class="btn-inline" type="button" hidden>アプリとしてインストール</button>
+  </footer>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
