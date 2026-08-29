@@ -36,3 +36,7 @@ Repository Settings → Pages → Build and deployment で以下を指定しま�
 ## 注意
 
 SHA-256計算は各パーツを一時的にメモリへ読み込みます。大きなパーツサイズでは端末の空きメモリに依存します。
+
+## AI向けプロジェクトknowledge
+
+ChatGPT、Codex、Gemini Web、Antigravity 2は、作業前に [`.ai/INDEX.md`](.ai/INDEX.md) を入口として現行仕様、状態、既知の制約を確認してください。
