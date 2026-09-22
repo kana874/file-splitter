@@ -796,8 +796,7 @@ function sha256HexFallback(bytes) {
   const bitLength=bytes.length*8;
   const totalLength=Math.ceil((bytes.length+1+8)/64)*64;
   const msg=new Uint8Array(totalLength);
-  msg.set(bytes);
-  msg[bytes.length]=0x80;
+  msg.set(bytes); msg[bytes.length]=0x80;
   const view=new DataView(msg.buffer);
   view.setUint32(totalLength-8,Math.floor(bitLength/0x100000000),false);
   view.setUint32(totalLength-4,bitLength>>>0,false);
@@ -825,7 +824,6 @@ function sha256HexFallback(bytes) {
   }
   return [h0,h1,h2,h3,h4,h5,h6,h7].map(v=>v.toString(16).padStart(8,'0')).join('');
 }
-
 async function sha256Hex(blob) {
   const buffer = await blob.arrayBuffer();
   if (globalThis.crypto?.subtle) {
@@ -1087,12 +1085,9 @@ function clearMerge() {
 }
 
 function setupPwa() {
-  const status=$('offlineStatus');
-  if(status) status.textContent='単一HTML版 / 完全オフライン';
-  const banner=$('updateBanner');
-  if(banner) banner.hidden=true;
-  const install=$('btnInstall');
-  if(install) install.hidden=true;
+  const status=$('offlineStatus'); if(status) status.textContent='単一HTML版 / 完全オフライン';
+  const banner=$('updateBanner'); if(banner) banner.hidden=true;
+  const install=$('btnInstall'); if(install) install.hidden=true;
 }
 
 function init() {
