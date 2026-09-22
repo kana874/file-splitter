@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<!-- ファイル分割・結合 完全単一HTML版 v2.0.0 / GitHub main参照 / CSS・JS内蔵 / WebCrypto非対応時SHA-256フォールバック内蔵 -->
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="description" content="ブラウザ内だけでファイルを分割・結合し、SHA-256で整合性確認できるオフライン対応ツール">
+  <title>セキュア・ファイル分割/結合ツール</title>
+  <style data-standalone="app-css">:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --bg-color: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #334155;
+  --text-strong: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --success: #166534;
+  --success-bg: #f0fdf4;
+  --success-border: #bbf7d0;
+  --warning: #92400e;
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --danger: #991b1b;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg-color);
+  color: var(--text-main);
+  margin: 0;
+  padding: 2rem 1rem 1rem;
+  line-height: 1.6;
+}
+
+button, input, select { font: inherit; }
+
+.header {
+  max-width: 980px;
+  margin: 0 auto 1.5rem;
+  text-align: center;
+}
+
+.title-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: .65rem;
+  flex-wrap: wrap;
+}
+
+.header h1 {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: clamp(1.5rem, 4vw, 1.9rem);
+}
+
+.header p {
+  color: var(--text-muted);
+  margin: .45rem 0 .75rem;
+}
+
+.version {
+  display: inline-block;
+  border: 1px solid #bfdbfe;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 999px;
+  padding: .15rem .55rem;
+  font-size: .76rem;
+  font-weight: 700;
+}
+
+.security-strip {
+  display: flex;
+  justify-content: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.security-strip span {
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  color: #3730a3;
+  border-radius: 999px;
+  padding: .2rem .6rem;
+  font-size: .78rem;
+}
+
+.update-banner {
+  margin: .85rem auto 0;
+  max-width: 620px;
+  padding: .7rem .8rem;
+  border: 1px solid var(--warning-border);
+  border-radius: 8px;
+  background: var(--warning-bg);
+  color: var(--warning);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .7rem;
+}
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.4rem;
+  align-items: start;
+}
+
+.card, .notes-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .07);
+}
+
+.card {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.card h2, .notes-card h2 {
+  margin-top: 0;
+  color: var(--text-strong);
+}
+
+.card h2 {
+  font-size: 1.2rem;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: .7rem;
+  margin-bottom: 1rem;
+}
+
+.notes-card {
+  max-width: 980px;
+  margin: 1.4rem auto 0;
+  padding: 1.2rem 1.5rem;
+}
+
+.notes-card h2 { font-size: 1rem; margin-bottom: .55rem; }
+.notes-card ul { margin: .35rem 0 0; padding-left: 1.25rem; font-size: .88rem; color: var(--text-muted); }
+
+.settings-area {
+  background: #f1f5f9;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.form-group { margin-bottom: .75rem; }
+.form-group:last-child { margin-bottom: 0; }
+
+.form-group label {
+  display: block;
+  font-size: .85rem;
+  color: var(--text-muted);
+  margin-bottom: .25rem;
+  font-weight: 600;
+}
+
+select, input[type="number"] {
+  width: 100%;
+  padding: .55rem .6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text-main);
+}
+
+select:focus, input:focus, .drop-zone:focus {
+  outline: 3px solid rgba(37, 99, 235, .18);
+  border-color: var(--primary);
+}
+
+.field-note, .section-note {
+  color: var(--text-muted);
+  font-size: .82rem;
+}
+
+.field-note { margin: .35rem 0 0; }
+.section-note { margin: -.25rem 0 1rem; }
+
+code {
+  background: #f1f5f9;
+  border-radius: 4px;
+  padding: .08rem .28rem;
+  font-size: .9em;
+}
+
+.drop-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 2rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background-color .2s;
+  background: #f8fafc;
+  margin-bottom: 1rem;
+  position: relative;
+  min-height: 116px;
+  display: grid;
+  place-items: center;
+}
+
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.drop-zone p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: .9rem;
+  pointer-events: none;
+}
+
+.drop-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-info, .preview-box, .validation-box {
+  margin-bottom: 1rem;
+  font-size: .88rem;
+  border-radius: 7px;
+  padding: .75rem;
+  word-break: break-word;
+}
+
+.file-info, .preview-box {
+  background: #f1f5f9;
+  border: 1px solid var(--border);
+}
+
+.validation-box.ok {
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+}
+
+.validation-box.warning {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning);
+}
+
+.validation-box.error {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .6rem;
+  margin-top: .15rem;
+}
+
+.btn {
+  background: var(--primary);
+  color: #fff;
+  border: 0;
+  padding: .75rem 1rem;
+  border-radius: 7px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background-color .2s;
+  min-height: 44px;
+}
+
+.btn:hover:not(:disabled) { background: var(--primary-hover); }
+.btn:disabled { background: #94a3b8; cursor: not-allowed; }
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #334155;
+}
+.btn-secondary:hover:not(:disabled) { background: #cbd5e1; }
+
+.btn-inline {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  border-radius: 6px;
+  padding: .35rem .65rem;
+  cursor: pointer;
+  font-size: .82rem;
+}
+
+.progress-wrap {
+  margin-top: 1rem;
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  gap: .6rem;
+  font-size: .82rem;
+  color: var(--text-muted);
+  margin-bottom: .3rem;
+}
+
+progress {
+  width: 100%;
+  height: 12px;
+  accent-color: var(--primary);
+}
+
+.log-area {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.log-area:empty { display: none; }
+
+.status-msg {
+  font-size: .86rem;
+  color: var(--text-muted);
+  margin-bottom: .55rem;
+}
+
+.status-msg.success { color: var(--success); }
+.status-msg.warning { color: var(--warning); }
+.status-msg.error { color: var(--danger); }
+
+.download-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
+  padding: .7rem;
+  border-radius: 6px;
+  margin-bottom: .5rem;
+  font-size: .84rem;
+  color: var(--success);
+  text-decoration: none;
+  transition: transform .1s, background-color .2s;
+  overflow-wrap: anywhere;
+}
+
+.download-item:hover {
+  transform: translateX(2px);
+  background: #dcfce7;
+}
+
+.download-item.primary { font-weight: 700; }
+
+.footer {
+  max-width: 980px;
+  margin: 1rem auto 0;
+  color: var(--text-muted);
+  font-size: .78rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+}
+
+[hidden] { display: none !important; }
+
+@media (max-width: 768px) {
+  body { padding: 1rem .75rem .75rem; }
+  .container { grid-template-columns: 1fr; }
+  .card { padding: 1.1rem; }
+  .action-row { grid-template-columns: 1fr; }
+  .btn-secondary { width: 100%; }
+  .footer { flex-direction: column; align-items: stretch; text-align: center; }
+}
+</style>
+</head>
+<body>
+  <header class="header">
+    <div class="title-row">
+      <h1>ファイル分割・結合ツール</h1>
+      <span class="version">Ver.2.0.0</span>
+    </div>
+    <p>ブラウザ内で完結。ファイル内容は外部サーバーへ送信しません。</p>
+    <div class="security-strip" role="status" aria-live="polite">
+      <span>ローカル処理</span>
+      <span>SHA-256整合性確認</span>
+      <span id="offlineStatus">オンライン起動</span>
+    </div>
+    <div id="updateBanner" class="update-banner" hidden>
+      <span>新しいバージョンを利用できます。</span>
+      <button id="btnUpdate" class="btn-inline" type="button">更新する</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card" aria-labelledby="splitHeading">
+      <h2 id="splitHeading"><span aria-hidden="true">✂️</span> 分割（送信側）</h2>
+
+      <div class="settings-area">
+        <div class="form-group">
+          <label for="splitMode">分割サイズ / 方法</label>
+          <select id="splitMode">
+            <option value="5">5 MiB</option>
+            <option value="10">10 MiB</option>
+            <option value="14" selected>14 MiB（一般的なメール添付向け）</option>
+            <option value="15">15 MiB</option>
+            <option value="25">25 MiB</option>
+            <option value="50">50 MiB</option>
+            <option value="100">100 MiB</option>
+            <option value="custom">任意サイズ</option>
+            <option value="count">指定数で等分</option>
+          </select>
+        </div>
+
+        <div id="customSizeArea" class="form-group conditional" hidden>
+          <label for="customSize">任意サイズ（MiB）</label>
+          <input type="number" id="customSize" value="20" min="0.1" max="1024" step="0.1" inputmode="decimal">
+          <p class="field-note">1 MiB = 1,048,576 bytes。大きな値はSHA-256計算時のメモリ使用量が増えます。</p>
+        </div>
+
+        <div id="splitCountArea" class="form-group conditional" hidden>
+          <label for="splitCount">分割する数</label>
+          <input type="number" id="splitCount" value="2" min="2" max="9999" step="1" inputmode="numeric">
+        </div>
+      </div>
+
+      <div class="drop-zone" id="dropZoneSplit" tabindex="0" role="button" aria-label="分割するファイルを選択">
+        <p>ここにファイルをドラッグ＆ドロップ<br>またはクリックして選択</p>
+        <input type="file" id="fileInputSplit" aria-label="分割するファイル">
+      </div>
+
+      <div id="fileInfoSplit" class="file-info" hidden></div>
+      <div id="splitPreview" class="preview-box" hidden></div>
+
+      <div class="action-row">
+        <button class="btn" id="btnSplit" type="button" disabled>分割を実行</button>
+        <button class="btn btn-secondary" id="btnClearSplit" type="button" disabled>クリア</button>
+      </div>
+
+      <div id="progressSplit" class="progress-wrap" hidden>
+        <div class="progress-label"><span id="progressSplitText">準備中...</span><span id="progressSplitPercent">0%</span></div>
+        <progress id="progressSplitBar" value="0" max="100"></progress>
+      </div>
+
+      <div class="log-area" id="logSplit" aria-live="polite"></div>
+    </section>
+
+    <section class="card" aria-labelledby="mergeHeading">
+      <h2 id="mergeHeading"><span aria-hidden="true">🧩</span> 結合（受信側）</h2>
+      <p class="section-note">
+        <code>.part001</code> から始まる分割ファイルをすべて選択してください。<br>
+        <code>.parts.json</code> も一緒に選ぶと、各パーツのSHA-256を照合します。
+      </p>
+
+      <div class="drop-zone" id="dropZoneMerge" tabindex="0" role="button" aria-label="結合する分割ファイルを選択">
+        <p>分割ファイルをまとめてドラッグ＆ドロップ<br>またはクリックして選択（複数可）</p>
+        <input type="file" id="fileInputMerge" multiple aria-label="結合する分割ファイル">
+      </div>
+
+      <div id="fileInfoMerge" class="file-info" hidden></div>
+      <div id="mergeValidation" class="validation-box" hidden></div>
+
+      <div class="action-row">
+        <button class="btn" id="btnMerge" type="button" disabled>検証して結合</button>
+        <button class="btn btn-secondary" id="btnClearMerge" type="button" disabled>クリア</button>
+      </div>
+
+      <div id="progressMerge" class="progress-wrap" hidden>
+        <div class="progress-label"><span id="progressMergeText">準備中...</span><span id="progressMergePercent">0%</span></div>
+        <progress id="progressMergeBar" value="0" max="100"></progress>
+      </div>
+
+      <div class="log-area" id="logMerge" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <section class="notes-card" aria-labelledby="notesHeading">
+    <h2 id="notesHeading">仕様・注意点</h2>
+    <ul>
+      <li>分割時に各パーツのSHA-256を記録した <code>.parts.json</code> マニフェストを生成します。</li>
+      <li>結合時は、元ファイル名・連番・重複・欠損を先に検査し、マニフェストがあればサイズとSHA-256も照合します。</li>
+      <li>大容量ファイルは端末の空きメモリやブラウザ仕様の影響を受けます。特に大きなパーツサイズではSHA-256計算時にメモリを使用します。</li>
+      <li>生成したダウンロードURLはクリア操作やページ終了時に解放します。</li>
+    </ul>
+  </section>
+
+  <footer class="footer">
+    <span>File Splitter Ver.2.0.0 / 完全単一HTML版</span>
+    <button id="btnInstall" class="btn-inline" type="button" hidden>アプリとしてインストール</button>
+  </footer>
+
+  <script data-standalone="app-js">'use strict';
+
+const APP_VERSION = '2.0.0';
+const MIB = 1024 * 1024;
+const PART_RE = /^(.*)\.part(\d+)$/i;
+const MANIFEST_RE = /\.parts\.json$/i;
+
+let splitFileSelected = null;
+let mergeFilesSelected = [];
+let splitObjectUrls = [];
+let mergeObjectUrls = [];
+let deferredInstallPrompt = null;
+
+const $ = (id) => document.getElementById(id);
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return '-';
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+  let value = bytes;
+  let unit = units[0];
+  for (let i = 0; i < units.length - 1 && value >= 1024; i += 1) {
+    value /= 1024;
+    unit = units[i + 1];
+  }
+  const digits = value >= 100 ? 0 : value >= 10 ? 1 : 2;
+  return `${value.toFixed(digits)} ${unit}`;
+}
+
+function setText(el, text) {
+  el.textContent = text;
+}
+
+function clearElement(el) {
+  while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+function appendStatus(container, text, kind = '') {
+  const div = document.createElement('div');
+  div.className = `status-msg${kind ? ` ${kind}` : ''}`;
+  div.textContent = text;
+  container.appendChild(div);
+  return div;
+}
+
+function appendDownloadLink(blob, filename, container, label, urlStore, primary = false) {
+  const url = URL.createObjectURL(blob);
+  urlStore.push(url);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.className = `download-item${primary ? ' primary' : ''}`;
+
+  const text = document.createElement('span');
+  text.textContent = label;
+  const icon = document.createElement('span');
+  icon.textContent = '⬇';
+  icon.setAttribute('aria-hidden', 'true');
+
+  link.append(text, icon);
+  container.appendChild(link);
+}
+
+function revokeUrls(store) {
+  for (const url of store) URL.revokeObjectURL(url);
+  store.length = 0;
+}
+
+function setProgress(prefix, current, total, text) {
+  const wrap = $(`progress${prefix}`);
+  const bar = $(`progress${prefix}Bar`);
+  const textEl = $(`progress${prefix}Text`);
+  const percentEl = $(`progress${prefix}Percent`);
+  const percent = total > 0 ? Math.min(100, Math.max(0, Math.round((current / total) * 100))) : 0;
+  wrap.hidden = false;
+  bar.value = percent;
+  textEl.textContent = text;
+  percentEl.textContent = `${percent}%`;
+}
+
+function hideProgress(prefix) {
+  $(`progress${prefix}`).hidden = true;
+  $(`progress${prefix}Bar`).value = 0;
+  $(`progress${prefix}Percent`).textContent = '0%';
+}
+
+function setupDropZone(dropZoneId, inputId, onFiles) {
+  const dropZone = $(dropZoneId);
+  const input = $(inputId);
+
+  ['dragenter', 'dragover'].forEach((eventName) => {
+    dropZone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      dropZone.classList.add('dragover');
+    });
+  });
+
+  ['dragleave', 'drop'].forEach((eventName) => {
+    dropZone.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      dropZone.classList.remove('dragover');
+    });
+  });
+
+  dropZone.addEventListener('drop', (event) => onFiles(Array.from(event.dataTransfer.files)));
+  input.addEventListener('change', () => onFiles(Array.from(input.files)));
+  dropZone.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      input.click();
+    }
+  });
+}
+
+function updateSplitModeUI() {
+  const mode = $('splitMode').value;
+  $('customSizeArea').hidden = mode !== 'custom';
+  $('splitCountArea').hidden = mode !== 'count';
+  updateSplitPreview();
+}
+
+function calculateSplitPlan(file) {
+  const mode = $('splitMode').value;
+  if (!file || file.size <= 0) throw new Error('0 byteのファイルは分割できません。');
+
+  if (mode === 'count') {
+    const count = Number.parseInt($('splitCount').value, 10);
+    if (!Number.isInteger(count) || count < 2 || count > 9999) {
+      throw new Error('分割数は2～9999の整数で指定してください。');
+    }
+    if (count > file.size) {
+      throw new Error('分割数がファイルのバイト数を超えています。空のパーツは作成しません。');
+    }
+    return { mode: 'count', totalChunks: count, chunkSize: null };
+  }
+
+  let sizeMiB;
+  if (mode === 'custom') {
+    sizeMiB = Number.parseFloat($('customSize').value);
+    if (!Number.isFinite(sizeMiB) || sizeMiB < 0.1 || sizeMiB > 1024) {
+      throw new Error('任意サイズは0.1～1024 MiBで指定してください。');
+    }
+  } else {
+    sizeMiB = Number.parseFloat(mode);
+  }
+
+  const chunkSize = Math.max(1, Math.floor(sizeMiB * MIB));
+  const totalChunks = Math.ceil(file.size / chunkSize);
+  return { mode: 'size', totalChunks, chunkSize, sizeMiB };
+}
+
+function getChunkRange(fileSize, index, plan) {
+  if (plan.mode === 'count') {
+    const start = Math.floor((fileSize * index) / plan.totalChunks);
+    const end = Math.floor((fileSize * (index + 1)) / plan.totalChunks);
+    return { start, end };
+  }
+  const start = index * plan.chunkSize;
+  const end = Math.min(fileSize, start + plan.chunkSize);
+  return { start, end };
+}
+
+function updateSplitPreview() {
+  const box = $('splitPreview');
+  if (!splitFileSelected) {
+    box.hidden = true;
+    clearElement(box);
+    return;
+  }
+
+  try {
+    const plan = calculateSplitPlan(splitFileSelected);
+    const first = getChunkRange(splitFileSelected.size, 0, plan);
+    const last = getChunkRange(splitFileSelected.size, plan.totalChunks - 1, plan);
+    const lines = [
+      `予想分割数: ${plan.totalChunks}個`,
+      `先頭パーツ: ${formatBytes(first.end - first.start)}`,
+      `最終パーツ: ${formatBytes(last.end - last.start)}`,
+      '整合性情報: SHA-256付きマニフェストを生成'
+    ];
+    box.textContent = lines.join('\n');
+    box.style.whiteSpace = 'pre-line';
+    box.hidden = false;
+  } catch (error) {
+    box.textContent = error.message;
+    box.hidden = false;
+  }
+}
+
+function handleSplitFiles(files) {
+  revokeUrls(splitObjectUrls);
+  clearElement($('logSplit'));
+  hideProgress('Split');
+
+  splitFileSelected = files[0] || null;
+  const info = $('fileInfoSplit');
+  $('btnSplit').disabled = !splitFileSelected;
+  $('btnClearSplit').disabled = !splitFileSelected;
+
+  if (!splitFileSelected) {
+    info.hidden = true;
+    updateSplitPreview();
+    return;
+  }
+
+  info.textContent = `選択中: ${splitFileSelected.name}（${formatBytes(splitFileSelected.size)}）`;
+  info.hidden = false;
+  updateSplitPreview();
+}
+
+function handleMergeFiles(files) {
+  revokeUrls(mergeObjectUrls);
+  clearElement($('logMerge'));
+  hideProgress('Merge');
+
+  mergeFilesSelected = files;
+  const info = $('fileInfoMerge');
+  const validation = $('mergeValidation');
+  validation.hidden = true;
+  validation.className = 'validation-box';
+  clearElement(validation);
+
+  $('btnMerge').disabled = files.length === 0;
+  $('btnClearMerge').disabled = files.length === 0;
+
+  if (files.length === 0) {
+    info.hidden = true;
+    return;
+  }
+
+  const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+  const manifestCount = files.filter((file) => MANIFEST_RE.test(file.name)).length;
+  info.textContent = `${files.length}個のファイルを選択中（合計 ${formatBytes(totalSize)} / マニフェスト ${manifestCount}個）`;
+  info.hidden = false;
+
+  const quick = quickValidateMergeSelection(files);
+  validation.textContent = quick.message;
+  validation.className = `validation-box ${quick.ok ? (quick.warning ? 'warning' : 'ok') : 'error'}`;
+  validation.hidden = false;
+}
+
+function quickValidateMergeSelection(files) {
+  const manifests = files.filter((file) => MANIFEST_RE.test(file.name));
+  const parts = files.filter((file) => !MANIFEST_RE.test(file.name));
+
+  if (manifests.length > 1) return { ok: false, message: 'マニフェスト（.parts.json）は1個だけ選択してください。' };
+  if (parts.length === 0) return { ok: false, message: '分割ファイル（.part001 など）が選択されていません。' };
+
+  const parsed = parts.map((file) => {
+    const match = file.name.match(PART_RE);
+    return match ? { file, base: match[1], number: Number.parseInt(match[2], 10) } : null;
+  });
+  if (parsed.some((item) => item === null)) {
+    return { ok: false, message: '認識できないファイルがあります。.part001 形式の分割ファイルだけを選択してください。' };
+  }
+
+  const bases = new Set(parsed.map((item) => item.base));
+  if (bases.size !== 1) return { ok: false, message: '異なる元ファイルのパーツが混在しています。' };
+
+  const numbers = parsed.map((item) => item.number);
+  if (new Set(numbers).size !== numbers.length) return { ok: false, message: '同じパーツ番号が重複しています。' };
+
+  numbers.sort((a, b) => a - b);
+  if (numbers[0] !== 1) return { ok: false, message: 'part001 がありません。' };
+  for (let i = 1; i < numbers.length; i += 1) {
+    if (numbers[i] !== numbers[i - 1] + 1) {
+      return { ok: false, message: `part${String(numbers[i - 1] + 1).padStart(3, '0')} が不足しています。` };
+    }
+  }
+
+  if (manifests.length === 1) {
+    return { ok: true, warning: false, message: `連番チェックOK。${numbers.length}パーツ + SHA-256マニフェストを検出しました。` };
+  }
+  return { ok: true, warning: true, message: `連番チェックOK。${numbers.length}パーツ。マニフェストがないためSHA-256照合は行いません。` };
+}
+
+function sha256HexFallback(bytes) {
+  const K = new Uint32Array([
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+  ]);
+  const rotr=(x,n)=>(x>>>n)|(x<<(32-n));
+  const bitLength=bytes.length*8;
+  const totalLength=Math.ceil((bytes.length+1+8)/64)*64;
+  const msg=new Uint8Array(totalLength);
+  msg.set(bytes);
+  msg[bytes.length]=0x80;
+  const view=new DataView(msg.buffer);
+  view.setUint32(totalLength-8,Math.floor(bitLength/0x100000000),false);
+  view.setUint32(totalLength-4,bitLength>>>0,false);
+  let h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+  const w=new Uint32Array(64);
+  for(let off=0;off<totalLength;off+=64){
+    for(let i=0;i<16;i++)w[i]=view.getUint32(off+i*4,false);
+    for(let i=16;i<64;i++){
+      const s0=(rotr(w[i-15],7)^rotr(w[i-15],18)^(w[i-15]>>>3))>>>0;
+      const s1=(rotr(w[i-2],17)^rotr(w[i-2],19)^(w[i-2]>>>10))>>>0;
+      w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0;
+    }
+    let a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;
+    for(let i=0;i<64;i++){
+      const S1=(rotr(e,6)^rotr(e,11)^rotr(e,25))>>>0;
+      const ch=((e&f)^((~e)&g))>>>0;
+      const t1=(h+S1+ch+K[i]+w[i])>>>0;
+      const S0=(rotr(a,2)^rotr(a,13)^rotr(a,22))>>>0;
+      const maj=((a&b)^(a&c)^(b&c))>>>0;
+      const t2=(S0+maj)>>>0;
+      h=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0;
+    }
+    h0=(h0+a)>>>0;h1=(h1+b)>>>0;h2=(h2+c)>>>0;h3=(h3+d)>>>0;
+    h4=(h4+e)>>>0;h5=(h5+f)>>>0;h6=(h6+g)>>>0;h7=(h7+h)>>>0;
+  }
+  return [h0,h1,h2,h3,h4,h5,h6,h7].map(v=>v.toString(16).padStart(8,'0')).join('');
+}
+
+async function sha256Hex(blob) {
+  const buffer = await blob.arrayBuffer();
+  if (globalThis.crypto?.subtle) {
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', buffer);
+      return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    } catch {}
+  }
+  return sha256HexFallback(new Uint8Array(buffer));
+}
+
+function buildManifestName(originalName) {
+  return `${originalName}.parts.json`;
+}
+
+async function splitFile() {
+  const file = splitFileSelected;
+  const log = $('logSplit');
+  const btn = $('btnSplit');
+  if (!file) return;
+
+  revokeUrls(splitObjectUrls);
+  clearElement(log);
+
+  let plan;
+  try {
+    plan = calculateSplitPlan(file);
+  } catch (error) {
+    appendStatus(log, error.message, 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  $('btnClearSplit').disabled = true;
+  btn.textContent = '処理中...';
+
+  try {
+    const manifest = {
+      manifestVersion: 2,
+      app: 'File Splitter',
+      appVersion: APP_VERSION,
+      createdAt: new Date().toISOString(),
+      originalName: file.name,
+      originalSize: file.size,
+      totalParts: plan.totalChunks,
+      hashAlgorithm: 'SHA-256',
+      split: plan.mode === 'count'
+        ? { method: 'count', count: plan.totalChunks }
+        : { method: 'size', chunkSizeBytes: plan.chunkSize },
+      parts: []
+    };
+
+    appendStatus(log, `総サイズ ${formatBytes(file.size)} / ${plan.totalChunks}パーツを生成します。`);
+
+    for (let i = 0; i < plan.totalChunks; i += 1) {
+      const { start, end } = getChunkRange(file.size, i, plan);
+      const chunk = file.slice(start, end);
+      const partNum = String(i + 1).padStart(3, '0');
+      const chunkName = `${file.name}.part${partNum}`;
+      setProgress('Split', i, plan.totalChunks, `SHA-256計算中 ${i + 1} / ${plan.totalChunks}`);
+      const hash = await sha256Hex(chunk);
+
+      manifest.parts.push({
+        number: i + 1,
+        name: chunkName,
+        size: chunk.size,
+        sha256: hash
+      });
+
+      appendDownloadLink(
+        chunk,
+        chunkName,
+        log,
+        `${chunkName}（${formatBytes(chunk.size)}）`,
+        splitObjectUrls
+      );
+      setProgress('Split', i + 1, plan.totalChunks, `分割完了 ${i + 1} / ${plan.totalChunks}`);
+
+      if (i % 8 === 7) await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+
+    const manifestText = `${JSON.stringify(manifest, null, 2)}\n`;
+    const manifestBlob = new Blob([manifestText], { type: 'application/json;charset=utf-8' });
+    appendDownloadLink(
+      manifestBlob,
+      buildManifestName(file.name),
+      log,
+      `整合性マニフェスト: ${buildManifestName(file.name)}`,
+      splitObjectUrls,
+      true
+    );
+    appendStatus(log, '分割完了。すべてのパーツと .parts.json を保存してください。', 'success');
+  } catch (error) {
+    appendStatus(log, `分割中にエラーが発生しました: ${error.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    $('btnClearSplit').disabled = false;
+    btn.textContent = '分割を実行';
+  }
+}
+
+function parsePartFiles(files) {
+  const manifests = files.filter((file) => MANIFEST_RE.test(file.name));
+  const rawParts = files.filter((file) => !MANIFEST_RE.test(file.name));
+
+  if (manifests.length > 1) throw new Error('マニフェスト（.parts.json）が複数選択されています。');
+  if (rawParts.length === 0) throw new Error('分割ファイルがありません。');
+
+  const parts = rawParts.map((file) => {
+    const match = file.name.match(PART_RE);
+    if (!match) throw new Error(`認識できないファイルです: ${file.name}`);
+    return { file, base: match[1], number: Number.parseInt(match[2], 10) };
+  });
+
+  const bases = new Set(parts.map((part) => part.base));
+  if (bases.size !== 1) throw new Error('異なる元ファイルのパーツが混在しています。');
+
+  parts.sort((a, b) => a.number - b.number);
+  const seen = new Set();
+  for (let i = 0; i < parts.length; i += 1) {
+    const part = parts[i];
+    if (seen.has(part.number)) throw new Error(`part${String(part.number).padStart(3, '0')} が重複しています。`);
+    seen.add(part.number);
+    const expected = i + 1;
+    if (part.number !== expected) throw new Error(`part${String(expected).padStart(3, '0')} が不足しています。`);
+  }
+
+  return { parts, manifestFile: manifests[0] || null, originalNameFromParts: parts[0].base };
+}
+
+async function readManifest(file) {
+  if (!file) return null;
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    throw new Error('マニフェストJSONを読み取れません。');
+  }
+
+  if (!data || data.manifestVersion !== 2 || !Array.isArray(data.parts)) {
+    throw new Error('対応していないマニフェスト形式です。Ver.2で生成した .parts.json を使用してください。');
+  }
+  if (!Number.isSafeInteger(data.originalSize) || data.originalSize < 0) throw new Error('マニフェストのoriginalSizeが不正です。');
+  if (!Number.isInteger(data.totalParts) || data.totalParts < 1) throw new Error('マニフェストのtotalPartsが不正です。');
+  if (typeof data.originalName !== 'string' || data.originalName.length === 0) throw new Error('マニフェストのoriginalNameが不正です。');
+  return data;
+}
+
+function safeDownloadName(name) {
+  return name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_') || 'merged_file';
+}
+
+async function mergeFiles() {
+  const log = $('logMerge');
+  const btn = $('btnMerge');
+  if (mergeFilesSelected.length === 0) return;
+
+  revokeUrls(mergeObjectUrls);
+  clearElement(log);
+  btn.disabled = true;
+  $('btnClearMerge').disabled = true;
+  btn.textContent = '検証中...';
+
+  try {
+    const parsed = parsePartFiles(mergeFilesSelected);
+    const { parts, manifestFile, originalNameFromParts } = parsed;
+    const manifest = await readManifest(manifestFile);
+
+    if (manifest) {
+      if (manifest.originalName !== originalNameFromParts) {
+        throw new Error(`元ファイル名が一致しません。パーツ: ${originalNameFromParts} / マニフェスト: ${manifest.originalName}`);
+      }
+      if (manifest.totalParts !== parts.length) {
+        throw new Error(`パーツ数が一致しません。選択: ${parts.length} / マニフェスト: ${manifest.totalParts}`);
+      }
+      if (manifest.parts.length !== parts.length) {
+        throw new Error('マニフェスト内のパーツ一覧件数が一致しません。');
+      }
+
+      appendStatus(log, `構造検証OK。${parts.length}パーツのSHA-256を照合します。`);
+
+      for (let i = 0; i < parts.length; i += 1) {
+        const selected = parts[i];
+        const expected = manifest.parts[i];
+        const expectedNum = i + 1;
+        setProgress('Merge', i, parts.length, `SHA-256照合中 ${expectedNum} / ${parts.length}`);
+
+        if (expected.number !== expectedNum) throw new Error(`マニフェストのパーツ番号が不正です: ${expectedNum}`);
+        if (expected.name !== selected.file.name) throw new Error(`ファイル名が一致しません: ${selected.file.name}`);
+        if (expected.size !== selected.file.size) throw new Error(`サイズ不一致: ${selected.file.name}`);
+        if (typeof expected.sha256 !== 'string' || !/^[0-9a-f]{64}$/i.test(expected.sha256)) {
+          throw new Error(`SHA-256情報が不正です: ${selected.file.name}`);
+        }
+
+        const actualHash = await sha256Hex(selected.file);
+        if (actualHash.toLowerCase() !== expected.sha256.toLowerCase()) {
+          throw new Error(`SHA-256不一致: ${selected.file.name}。破損または別ファイルの可能性があります。`);
+        }
+        setProgress('Merge', i + 1, parts.length, `検証OK ${expectedNum} / ${parts.length}`);
+        if (i % 8 === 7) await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+    } else {
+      appendStatus(log, '連番・重複・混在チェックはOKです。マニフェストがないためSHA-256照合は省略します。', 'warning');
+      setProgress('Merge', 1, 1, '構造検証完了');
+    }
+
+    const fileBlobs = parts.map((part) => part.file);
+    const mergedBlob = new Blob(fileBlobs, { type: 'application/octet-stream' });
+    const expectedSize = manifest ? manifest.originalSize : fileBlobs.reduce((sum, file) => sum + file.size, 0);
+    if (mergedBlob.size !== expectedSize) {
+      throw new Error(`結合後サイズが一致しません。実際: ${mergedBlob.size} bytes / 期待: ${expectedSize} bytes`);
+    }
+
+    const originalName = safeDownloadName(manifest?.originalName || originalNameFromParts);
+    appendStatus(log, `結合準備完了。合計サイズ ${formatBytes(mergedBlob.size)}。`, 'success');
+    appendDownloadLink(
+      mergedBlob,
+      originalName,
+      log,
+      `${originalName} を保存（${formatBytes(mergedBlob.size)}）`,
+      mergeObjectUrls,
+      true
+    );
+  } catch (error) {
+    appendStatus(log, `結合できません: ${error.message}`, 'error');
+    const validation = $('mergeValidation');
+    validation.textContent = error.message;
+    validation.className = 'validation-box error';
+    validation.hidden = false;
+  } finally {
+    btn.disabled = false;
+    $('btnClearMerge').disabled = false;
+    btn.textContent = '検証して結合';
+  }
+}
+
+function clearSplit() {
+  revokeUrls(splitObjectUrls);
+  splitFileSelected = null;
+  $('fileInputSplit').value = '';
+  $('fileInfoSplit').hidden = true;
+  $('splitPreview').hidden = true;
+  clearElement($('logSplit'));
+  hideProgress('Split');
+  $('btnSplit').disabled = true;
+  $('btnClearSplit').disabled = true;
+}
+
+function clearMerge() {
+  revokeUrls(mergeObjectUrls);
+  mergeFilesSelected = [];
+  $('fileInputMerge').value = '';
+  $('fileInfoMerge').hidden = true;
+  $('mergeValidation').hidden = true;
+  clearElement($('logMerge'));
+  hideProgress('Merge');
+  $('btnMerge').disabled = true;
+  $('btnClearMerge').disabled = true;
+}
+
+function setupPwa() {
+  const status=$('offlineStatus');
+  if(status) status.textContent='単一HTML版 / 完全オフライン';
+  const banner=$('updateBanner');
+  if(banner) banner.hidden=true;
+  const install=$('btnInstall');
+  if(install) install.hidden=true;
+}
+
+function init() {
+  setupDropZone('dropZoneSplit', 'fileInputSplit', handleSplitFiles);
+  setupDropZone('dropZoneMerge', 'fileInputMerge', handleMergeFiles);
+
+  $('splitMode').addEventListener('change', updateSplitModeUI);
+  $('customSize').addEventListener('input', updateSplitPreview);
+  $('splitCount').addEventListener('input', updateSplitPreview);
+  $('btnSplit').addEventListener('click', splitFile);
+  $('btnMerge').addEventListener('click', mergeFiles);
+  $('btnClearSplit').addEventListener('click', clearSplit);
+  $('btnClearMerge').addEventListener('click', clearMerge);
+
+  window.addEventListener('beforeunload', () => {
+    revokeUrls(splitObjectUrls);
+    revokeUrls(mergeObjectUrls);
+  });
+
+  setupPwa();
+  updateSplitModeUI();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
