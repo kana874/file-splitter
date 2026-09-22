@@ -1,0 +1,25 @@
+name: Package standalone HTML
+
+on:
+  push:
+    branches:
+      - chatgpt/standalone-html-20260922
+    paths:
+      - 'standalone/**'
+      - '.github/workflows/package-standalone.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload standalone HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-html
+          path: standalone/*.html
+          if-no-files-found: error
